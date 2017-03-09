@@ -1,0 +1,100 @@
+---
+title: "NOAA Storm Data Analysis"
+output: html_document
+---
+
+*Dandan Huang, Mar 5, 2017*
+
+## Synopsis  
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+The report below includes loading the dataset and analyze the impact of severe weather events on human health and economic cost.
+
+## Data Loading
+
+Data loading includes 3 parts:   
+- Set working directory;   
+- Download dataset directly from the [link]("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2");     
+- Read the data frame. Data loading is time-consuming and thus the 'cache = TRUE' option is used.
+```{r, cache = TRUE}
+## Set work directory
+setwd("/Users/Yun/Desktop/DS/ReproducibleResearch/Project2")
+
+## Load dataset
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", "StormData.csv.bz2")
+
+## Read data frame
+df <- read.csv("StormData.csv.bz2")
+```
+
+## Data Processing
+
+This part answers 2 questions:  
+- Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to human health?  
+- Across the United States, which types of events have the greatest economic consequences?
+
+
+To answer the first question, we assume that any event causing fatalities or injuries is considered harmful to human health. For the simplicity of analysis, we assume that fatality and injury counts have equal evaluation power. Therefore we define a new variable "body", equals to total counts of fatalities and injuries. Then we calculate total bolidy impact by event type, and order the result by descending order. 
+```{r}
+## Add one new variable body - total impact on human health
+df$body <- df$FATALITIES + df$INJURIES
+
+## Total bodily impact by event type, descending order
+body_by_evtype <- aggregate(df$body ~ df$EVTYPE, df,sum)
+body_by_evtype <- body_by_evtype[order(body_by_evtype[,2], decreasing = TRUE),]
+```
+
+
+
+To answer the second question, we assume that any event causing crop damage or property damage is considered to have big economic cost. For the simplicity of analysis, we assume that crop damage and property damage counts have the same units, and have equal evaluation power. Therefore we define a new variable "money", equals to total counts of crop damage and property damage. Then we calculate total monetary impact by event type, and order the result by descending order. 
+```{r}
+## Add one new variable money - total economic cost
+df$money <- df$CROPDMG + df$PROPDMG
+
+## Total monetary impact by event type, descending order
+money_by_evtype <- aggregate(df$money ~ df$EVTYPE, df,sum)
+money_by_evtype <- money_by_evtype[order(money_by_evtype[,2], decreasing = TRUE),]
+
+```
+## Results
+
+The first plot shows the most harmful weather events to human health.
+```{r}
+library(ggplot2)
+
+## Plot Total bodily impact by event type
+data <- body_by_evtype[1:10,]
+name <- data[1:10,1]
+val <- data[1:10,2]
+data$name <- factor(data$`df$EVTYPE`, levels = data$`df$EVTYPE`[order(data$`df$body`)])
+
+p<-ggplot(data, aes(x = name, y = val)) +
+  geom_bar(stat="identity") + 
+  geom_text(aes(label = val), hjust=0, color="red", size=2) + 
+  coord_flip()+
+  labs(title = "Most harmful events to human health") +
+  labs(y = "Fatality and injury counts", x = "Event type")
+p
+```
+
+
+The following plot shows the most harmful weather events to economy.
+```{r}
+## Plot Total monetary impact by event type
+data <- money_by_evtype[1:10,]
+name <- data[1:10,1]
+val <- data[1:10,2]
+data$name <- factor(data$`df$EVTYPE`, levels = data$`df$EVTYPE`[order(data$`df$money`)])
+
+p<-ggplot(data, aes(x = name, y = val)) +
+  geom_bar(stat="identity") + 
+  geom_text(aes(label = val), hjust=0, color="red", size=2)+ 
+  coord_flip()+
+  labs(title = "Most harmful events to economy") +
+  labs(y = "Crop and property damage", x = "Event type")
+p
+```
+
